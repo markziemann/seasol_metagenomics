@@ -21,7 +21,8 @@ soil samples with and without treatment of Seasol.
 ```{r,begin}
 
 library("DESeq2")
-library(mitch)
+library("mitch")
+library("gplots")
 
 ```
 
@@ -41,6 +42,9 @@ x <- apply(x,2,as.numeric)
 x <- as.data.frame(x)
 rownames(x) <- df$`#OTU ID`
 colnames(x) <- gsub("_kraken_bracken","",colnames(x))
+
+# Phytophthora cinnamomi low detection level
+x[grep("innamomi",otu$`Consensus Lineage`),]
 
 nrow(x)
 x <- x[which(rowMeans(x)>10),]
@@ -122,7 +126,7 @@ make_volcano(res,"ctrl vs seasol")
 
 ## Identify OTUs
 
-```{r,OTU ident}
+```{r,OTU ident,fig.height=16,fig.width=8}
 
 otu <- df[,c(1,ncol(df))]
 rownames(otu) <- otu[,1]
@@ -150,6 +154,27 @@ bars <- sapply(top_otus,function(o) {
   mtext(taxon,cex=0.4)
   grid()
 })
+
+```
+
+## Phythophthora
+
+Phytophthora was below the detection threshold.
+
+```{r,phytophthora}
+
+phytophthora <- resm[grep("Phytophthora",resm$`Consensus Lineage`),]
+phytophthora
+
+xxm <- merge(xx,otu,by=0)
+xxm[grep("Phytophthora",xxm$`Consensus Lineage`),]
+
+phytophthora <- xxm[grep("Phytophthora",xxm$`Consensus Lineage`),]
+rownames(phytophthora) <- sapply(strsplit(phytophthora$`Consensus Lineage`,";"),"[[",7)
+phytophthora[,1]=NULL
+phytophthora[,ncol(phytophthora)]=NULL
+phytophthora
+heatmap.2(as.matrix(phytophthora),trace="none",scale="none",mar=c(7,10),main="relative abundance")
 
 ```
 
@@ -220,22 +245,29 @@ genus_sets <- genus_sets[lapply(genus_sets,length)>=5]
 m <- mitch_import(res,DEtype="DESeq2")
 mphylum <- mitch_calc(m,genesets=phylum_sets)
 head(mphylum$enrichment_result,10)
-mitch_report(res=mphylum,outfile="mitch_phylum.html",overwrite=TRUE)
 
 mclass <- mitch_calc(m,genesets=class_sets)
 head(mclass$enrichment_result,10)
-mitch_report(res=mclass,outfile="mitch_class.html",overwrite=TRUE)
 
 morder <- mitch_calc(m,genesets=order_sets)
 head(morder$enrichment_result,20)
-mitch_report(res=morder,outfile="mitch_order.html",overwrite=TRUE)
 
 mfamily <- mitch_calc(m,genesets=family_sets)
 head(mfamily$enrichment_result,20)
-mitch_report(res=mfamily,outfile="mitch_family.html",overwrite=TRUE)
 
 mgenus <- mitch_calc(m,genesets=genus_sets)
 head(mgenus$enrichment_result,20)
+
+```
+
+Reports
+
+```{r,mitch2}
+
+mitch_report(res=mphylum,outfile="mitch_phylum.html",overwrite=TRUE)
+mitch_report(res=mclass,outfile="mitch_class.html",overwrite=TRUE)
+mitch_report(res=morder,outfile="mitch_order.html",overwrite=TRUE)
+mitch_report(res=mfamily,outfile="mitch_family.html",overwrite=TRUE)
 mitch_report(res=mgenus,outfile="mitch_genus.html",overwrite=TRUE)
 
 ```
