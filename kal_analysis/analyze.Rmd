@@ -1,0 +1,88 @@
+---
+title: "Seasol metagenomics analysis"
+author: "Mark Ziemann"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    fig_width: 7
+    fig_height: 7
+theme: cosmo
+---
+
+## Introduction
+
+Let's QC this data.
+
+```{r,libraries}
+
+library("gplots")
+library("reshape2")
+
+```
+
+## Read
+
+```{r,read1}
+
+tmp <- read.table("3col.tsv")
+x <- t(acast(tmp, V1~V2, value.var="V3"))
+
+# chr length
+chr <- read.table("pc_chr.tsv")
+
+```
+
+
+## Contigs analysis
+
+```{r,analysis1}
+
+head(x[order(-rowMeans(x)),],20)
+
+chr <- chr[order(chr$V1),]
+
+xn <- x/chr$V2 * 1000000
+
+```
+
+## Differential analysis
+
+```{r,analysis2}
+
+res <- apply(X=xn,MARGIN=1,function(i){
+  g1 <- i[1:4]
+  g2 <- i[5:8]
+  xt <- t.test(x=g1,y=g2,alternative="two.sided")
+  xp <- xt$p.value
+  xlfc <- unname(log2(xt$estimate[2]/xt$estimate[1]))
+  return(c(xp,xlfc))
+})
+
+res <- t(res)
+
+colnames(res) <- c("pval","lfc")
+
+res <- as.data.frame(res)
+
+res$fdr <- p.adjust(res$pval)
+
+top <- head(res[order(res$pval),],20)
+
+top
+
+for (i in 1:6) { 
+  r=which(rownames(xn) == rownames(top)[i])
+  barplot(xn[r,],main=rownames(xn)[r])
+}
+
+```
+
+## Session info
+
+```{r,sessioninfo}
+
+sessionInfo()
+
+```
